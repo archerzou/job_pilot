@@ -7,8 +7,8 @@ Update this file after every completed feature. Any AI agent reading this should
 ## Current Status
 
 **Phase:** Phase 1 — Foundation
-**Last completed:** 02 Auth
-**Next:** 03 PostHog Initialization
+**Last completed:** 04 Database Schema
+**Next:** 05 Profile Page — Full UI
 
 ---
 
@@ -18,8 +18,8 @@ Update this file after every completed feature. Any AI agent reading this should
 
 - [x] 01 Homepage
 - [x] 02 Auth
-- [ ] 03 PostHog Initialization
-- [ ] 04 Database Schema
+- [x] 03 PostHog Initialization
+- [x] 04 Database Schema
 
 ### Phase 2 — Profile Page
 
@@ -73,6 +73,7 @@ Update this file after every completed feature. Any AI agent reading this should
 - Production build verification passed after allowing `next/font` to fetch the required Inter font outside the sandbox.
 - Feature 02 lint and production build verification passed. Build still requires network access for `next/font` to fetch Inter.
 - Feature 03 lint and production build verification passed. The first build attempt still failed on the known sandboxed `next/font` Inter fetch; rerunning with network access passed. PostHog will stay inactive until `NEXT_PUBLIC_POSTHOG_KEY` or `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN` is present in `.env.local`.
+- Feature 03 finalized via the PostHog Wizard: singleton init in `instrumentation-client.ts`, `/ingest/*` reverse proxy in `next.config.ts`, server client in `lib/posthog-server.ts`, server-side `identify` + `login_completed`/`login_failed` in `app/api/auth/callback/route.ts`, `logout_completed` in `app/api/auth/logout/route.ts`, `dashboard_viewed` + `PostHogIdentify` on `app/dashboard/page.tsx`, `cta_clicked` on Hero/CTASection, `login_initiated`/`login_error_displayed` in `LoginButtons`. Navbar tracking added on top: `cta_clicked` for "Start for free" and `nav_link_clicked` for logo/Dashboard/Find Jobs/Profile. Env vars: `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN`, `NEXT_PUBLIC_POSTHOG_HOST`. See `posthog-setup-report.md`.
 - Feature 04: four tables (`profiles`, `agent_runs`, `jobs`, `agent_logs`) created via InsForge CLI migrations with full RLS (16 policies). Two Postgres triggers on `profiles`: `on_profile_updated` auto-sets `updated_at`; `on_auth_user_created` on `auth.users` auto-inserts a minimal profile row on signup. `resumes` private storage bucket created with path-scoped RLS on `storage.objects`. `types/index.ts` created with `Profile`, `WorkExperience`, `Education`, `AgentRun`, `Job`, `AgentLog` interfaces.
 - Feature 06: `actions/profile.ts` created with `saveProfile` (text fields → `profiles` table, `is_complete` calculated via `calculateCompletion`, `profile_completed` PostHog event on first completion) and `uploadResume` (PDF → InsForge Storage at `{userId}/resume.pdf`, URL saved to `profiles.resume_pdf_url`). `lib/profile-utils.ts` created with shared `calculateCompletion` (9 required fields). `MissingField` union type moved to `types/index.ts`. `ProfileForm` now accepts `profile` prop, initialises all state from DB, has `<form onSubmit>` with `useTransition`, loading/error/success feedback, and `coverLetterTone` field added to Job Preferences. `ResumeSection` uploads on file selection via `uploadResume`. `ProfilePage` fetches full profile from DB and passes real data to all components. Three bugs fixed post-build: (1) `requireUser()` moved outside `try/catch` in both actions so `NEXT_REDIRECT` is never swallowed; (2) `parseInt` NaN guard added for years of experience; (3) `.select("id").maybeSingle()` added after `.update()` so zero-rows-updated is caught as an error instead of silent success. Profile row backfilled for existing user via `INSERT … ON CONFLICT DO NOTHING`. `ProfileAttentionBanner` now returns `null` at 100% completion.
 - Feature 08: `@react-pdf/renderer` installed. `app/api/resume/generate/route.tsx` (POST handler: auth → profile fetch → GPT-4o content generation → `renderToBuffer` → storage remove+upload → DB update → `revalidatePath`) and `app/api/resume/generate/ResumePDF.tsx` (server-only PDF component + `GeneratedContent` type) created. `ResumeSection.tsx` wired with `handleGenerate` handler, loading/error/success state, and `window.open('/api/resume/download')` on success. Route file is `.tsx` (JSX required for `renderToBuffer`). Buffer cast to `ArrayBuffer` before `new Blob()` to satisfy strict TS.

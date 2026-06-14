@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import posthog from "posthog-js";
 
 export function CTASection() {
   return (
@@ -12,10 +15,18 @@ export function CTASection() {
           research the jobs that actually fit.
         </p>
         <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-          <Link href="/login" className="landing-button-primary">
+          <Link
+            href="/login"
+            className="landing-button-primary"
+            onClick={() => posthog.capture("cta_clicked", { label: "Get Started", location: "cta_section" })}
+          >
             Get Started
           </Link>
-          <Link href="#how-it-works" className="landing-button-secondary">
+          <Link
+            href="#how-it-works"
+            className="landing-button-secondary"
+            onClick={() => posthog.capture("cta_clicked", { label: "See How It Works", location: "cta_section" })}
+          >
             See How It Works
           </Link>
         </div>
