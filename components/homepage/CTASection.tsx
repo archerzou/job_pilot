@@ -3,7 +3,11 @@
 import Link from "next/link";
 import posthog from "posthog-js";
 
-export function CTASection() {
+type Props = {
+  ctaHref: string;
+};
+
+export function CTASection({ ctaHref }: Props) {
   return (
     <section className="landing-panel landing-hero-glow">
       <div className="mx-auto max-w-3xl px-6 py-16 sm:px-10 sm:py-20 lg:px-16 lg:py-24 text-center">
@@ -16,7 +20,7 @@ export function CTASection() {
         </p>
         <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
           <Link
-            href="/login"
+            href={ctaHref}
             className="landing-button-primary"
             onClick={() => posthog.capture("cta_clicked", { label: "Get Started", location: "cta_section" })}
           >

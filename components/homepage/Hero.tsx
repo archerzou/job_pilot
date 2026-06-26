@@ -4,7 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import posthog from "posthog-js";
 
-export function Hero() {
+type Props = {
+  ctaHref: string;
+};
+
+export function Hero({ ctaHref }: Props) {
   return (
     <section className="landing-panel landing-hero-glow">
       {/* Copy */}
@@ -21,14 +25,14 @@ export function Hero() {
         </p>
         <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
           <Link
-            href="/login"
+            href={ctaHref}
             className="landing-button-primary"
             onClick={() => posthog.capture("cta_clicked", { label: "Get Started", location: "hero" })}
           >
             Get Started
           </Link>
           <Link
-            href="/login"
+            href={ctaHref}
             className="landing-button-secondary"
             onClick={() => posthog.capture("cta_clicked", { label: "Find Your First Match", location: "hero" })}
           >

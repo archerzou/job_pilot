@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
     await posthog.shutdown();
   }
 
-  const response = NextResponse.redirect(new URL("/", request.url));
+  // 303 See Other forces the browser to GET "/" instead of re-POSTing (which would 405)
+  const response = NextResponse.redirect(new URL("/", request.url), { status: 303 });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   clearAuthCookies(response.cookies as any);
   return response;
