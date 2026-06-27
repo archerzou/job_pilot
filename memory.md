@@ -1,160 +1,90 @@
-# Memory — JobPilot Project
+# Memory — Feature 17 Session (Project Complete)
 
-Last updated: 2026-06-20
+Last updated: 2026-06-27
 
----
+## What was built
 
-## Current state
+**Feature 17 — Analytics Charts (Real DB Data):** Complete.
 
-- **Feature 06 (Profile Save Logic)**: complete. Server Actions, form wiring, resume upload, DB fetch on page load all working.
-- **progress-tracker.md**: updated — Feature 06 marked complete, next is Feature 07.
-- **`ui-registry.md`**: NOT yet created. Imprint audit baseline was established (table in Open Questions). Still pending.
+- `components/dashboard/CompanyResearchChart.tsx` — NEW; BarChart for company research activity per day; accepts `data: Array<{ day: string; count: number }>`
+- `components/dashboard/JobsOverTimeChart.tsx` — NEW; AreaChart for jobs found per day; accepts `data: Array<{ day: string; jobs: number }>`
+- `components/dashboard/MatchDistributionChart.tsx` — NEW; BarChart for match score distribution; accepts `data: Array<{ range: string; count: number }>`
+- `components/dashboard/AnalyticsCharts.tsx` — DELETED (was multi-export, violated 1-component-per-file standard)
+- `app/dashboard/page.tsx` — Added `fetchChartData(userId)` with 2 parallel DB queries; buckets into rolling 7-day slots and score ranges (50-60/60-70/70-80/80-90/90-100); passes data to 3 chart components; passes `userEmail={user.email}` to Navbar
 
----
+**Profile fix:**
+- `components/profile/ProfileForm.tsx` — `addWorkExp` now prepends new entry to top of list; label changed from "+ Add role" to "+ Add experience"
 
-## Next session starts with
+**Navbar — mobile hamburger + user avatar panel:**
+- `components/layout/Navbar.tsx` — Full rewrite; accepts `userEmail?: string`; desktop: centered nav + clickable UserCircle avatar → floating panel with email + sign out; mobile: hamburger (Menu/X icons) → dropdown with nav links + email + sign out; sign out via `handleSignOut` async function
 
-1. **Run `/remember restore`** to reload this context
-2. **Start Feature 07: AI Profile Extraction from Resume**
-   - Run `/architect feature 07` first — fetch InsForge + OpenAI docs before writing any code
-   - Flow: user uploads PDF → extract text → GPT → auto-fill `ProfileForm` fields
+**Sign out fix (3 rounds, final solution):**
+- `app/api/auth/logout/route.ts` — Returns 200 (no redirect); explicitly deletes both cookies; no `request` param
+- Sign out in Navbar: `fetch('/api/auth/logout', { method: 'POST' })` + `window.location.href = '/login'`
 
----
+**Agent refactor:**
+- `agent/find.ts` — NEW; `batchScoreJobs()` + `captureJobSearchEvents()` (fires `job_search_started` + `job_found` via posthog-node after DB insert)
+- `app/api/agent/find/route.ts` — Thinned to thin handler; imports from `agent/find.ts`
 
-## What was built (this session — 2026-06-20, Feature 06)
+**Code standards audit resolutions:**
+- `app/api/agent/research/route.ts` — Outer try/catch; `{ success: true/false }` on all responses; log prefix `[agent/research]`
+- `app/api/jobs/route.ts` — Outer try/catch; `{ success: true/false }`; log prefix `[api/jobs]`; eslint-disable moved to be directly above `let query: any`
+- `components/homepage/Features.tsx` — `company's` → `company&apos;s`
+- `components/homepage/HowItWorks.tsx` — `company's` + `you've` → HTML entities
+- `components/login/LoginButtons.tsx` — `eslint-disable-next-line @next/next/no-html-link-for-pages` above both OAuth `<a>` tags
+- `context/code-standards.md` — PostHog events table expanded to 3 tiers documenting all 7 events in the codebase
+- `app/profile/page.tsx`, `app/find-jobs/page.tsx`, `app/find-jobs/[id]/page.tsx` — Added `userEmail={user.email}` to Navbar
 
-**`lib/profile-utils.ts`** (created)
-- `calculateCompletion(profile)` — returns `{ pct, missing }` based on 9 required fields
-- `MissingField` union type exported from here
-
-**`actions/profile.ts`** (created)
-- `saveProfile(data: ProfileFormData)` — maps camelCase form data → snake_case DB columns, calls `client.database.from("profiles").update({...}).eq("id", user.id)`, fires `profile_completed` PostHog event on first completion, calls `revalidatePath("/profile")`
-- `uploadResume(formData: FormData)` — validates PDF ≤ 5MB, removes existing file then uploads to InsForge Storage at `{userId}/resume.pdf`, saves URL to `profiles.resume_pdf_url`
-- `requireUser()` called outside try/catch in both actions (NEXT_REDIRECT must not be caught)
-
-**`components/profile/ProfileForm.tsx`** (modified)
-- Now accepts `profile: ProfileFormData` prop and initialises all state from it
-- Changed `<div>` → `<form onSubmit={handleSubmit}>`
-- `useTransition` + `isPending` / `saveError` / `saveSuccess` state
-- Save button: `type="submit"`, disabled during pending, shows "Saving…" / error / success
-
-**`components/profile/ResumeSection.tsx`** (modified)
-- `handleFile()` creates FormData and calls `uploadResume` via `startTransition`
-- Wired to file input `onChange` and drag-and-drop `onDrop`
-- Shows upload loading / error / success state
-
-**`components/profile/ProfileAttentionBanner.tsx`** (modified)
-- Now uses `MissingField` type from `lib/profile-utils`
-
-**`app/profile/page.tsx`** (modified — twice)
-- Fetches real profile from DB: `client.database.from("profiles").select("*").eq("id", user.id).maybeSingle()`
-- Maps snake_case DB row → camelCase `ProfileFormData`
-- Calls `calculateCompletion(dbProfile)` for real completion %/missing fields
-
----
-
-## Bugs found and fixed (this session)
-
-### Bug 1 — profiles table had 0 rows (root cause of "saving doesn't work")
-`on_auth_user_created` trigger existed and was correct, but both users registered before the trigger was installed. Backfilled with:
-```sql
-INSERT INTO public.profiles (id, email, created_at, updated_at)
-SELECT id, email, NOW(), NOW() FROM auth.users
-WHERE id NOT IN (SELECT id FROM public.profiles)
-ON CONFLICT (id) DO NOTHING;
-```
-
-### Bug 2 — `upsert()` not in InsForge SDK
-After backfill, changed `update()` to `upsert()` as a safety net — but InsForge SDK docs only expose `insert`, `update`, `delete`, `select`, `rpc`. No `upsert`. The call returned no error but wrote null values for all fields. Reverted to `.update().eq("id", user.id)`. Rows now exist via backfill + trigger, so `update` is correct.
-
----
-
-## What was built (previous sessions)
-
-**Feature 05 (Profile Page Full UI):** `ProfileAttentionBanner`, `ConnectedAccounts`, `ResumeSection`, `TagInput`, `ProfileForm` all in `components/profile/`. `app/profile/page.tsx` with `requireUser()`.
-
-**Navbar rework:** authenticated = logo + nav links right (Dashboard · Find Jobs · Profile). Unauthenticated = logo + "Start for free" button right. No "Go to Dashboard" CTA button.
-
-**Profile page width:** `max-w-[800px] px-6`.
+**Build status:** `npm run lint` — 0 errors, 3 warnings (img tags only, pre-existing). `npm run build` — clean, all 16 routes compile.
 
 ---
 
 ## Decisions made (locked)
 
-- **InsForge DB client**: `client.database.from()` — NOT `client.from()`. The SSR client (`createServerClient`) namespaces it under `.database`.
-- **Server Actions**: `requireUser()` must be outside try/catch — `NEXT_REDIRECT` thrown by `redirect()` must not be swallowed.
-- **InsForge has no `upsert()`**: Use `update().eq("id", user.id)`. Profile rows are guaranteed to exist via the `on_auth_user_created` trigger.
-- **Navbar layout**: authenticated = logo + nav links right (no button). Unauthenticated = logo + "Start for free" right.
-- **Profile page max-width**: `max-w-[800px]` — matches design. Do not revert.
-- **logout redirect**: 303 not 307 — form POST + 307 causes browser to re-POST to "/" returning 405.
-- **Skills**: user-invokable slash commands live in `.claude/skills/`. `.agents/skills/` is Claude-internal only.
+- **Sign out pattern**: `fetch('/api/auth/logout', { method: 'POST' })` + `window.location.href = '/login'`. Never `<form method="POST">` in "use client" components — React can intercept before browser processes it. Never `router.push` — cookies must clear before navigation.
+- **Logout route returns 200**: Client owns navigation. Route only clears cookies; does not redirect.
+- **Cookie deletion**: Use `response.cookies.delete(DEFAULT_ACCESS_TOKEN_COOKIE)` and `response.cookies.delete(DEFAULT_REFRESH_TOKEN_COOKIE)` explicitly. `clearAuthCookies()` helper is unreliable in this version.
+- **Chart data source**: Real DB data (not PostHog). Charts bucket `jobs` table rows into day/score-range slots server-side in `fetchChartData`.
+- **1-component-per-file**: Enforced. Multi-export files must be split.
+- **Agent business logic**: Lives in `agent/` directory, not in route handlers. Routes are thin.
+- All prior locked decisions from Features 01–16 remain in force.
 
 ---
 
-## Technical gotchas (hard-won — do not repeat)
+## Problems solved
 
-### InsForge SSR auth requires `isServerMode: true`
-Route handlers calling auth methods must use:
-```ts
-const insforge = createClient({ baseUrl: ..., anonKey: ..., isServerMode: true });
-```
-Without it, refresh token arrives as Set-Cookie (never reaches browser) → sessions die after ~1h.
-
-Cookie names: `insforge_access_token` / `insforge_refresh_token`.
-
-### Next.js 16 — `proxy.ts` not `middleware.ts`
-Route protection in `proxy.ts` at repo root. Export must be named `proxy`, not `middleware`.
-
-### Tailwind v4 — wrap base-element styles in `@layer base`
-Unlayered selectors in `globals.css` beat utility classes. Always use `@layer base { a { ... } }`.
-
-### PostHog — initialized via wizard, do not re-init
-Singleton in `instrumentation-client.ts`. Server: `getPostHogClient()` from `lib/posthog-server.ts` + `await posthog.shutdown()`.
-
-### No `gh` CLI and no git remote
-`gh` not on PATH. `git remote -v` is empty. Use local diff for reviews.
+1. **Sign out not redirecting** (3 rounds): Root cause was `<form method="POST">` being intercepted by React. Final fix: explicit `fetch` + `window.location.href`.
+2. **Cookie clearing unreliable**: `clearAuthCookies()` helper didn't reliably clear. Fixed with explicit `response.cookies.delete()` calls.
+3. **eslint-disable-next-line on wrong line**: Directive must be *immediately* above the suppressed line with no comment between them.
+4. **`request` param unused in logout route**: Removed `request: NextRequest` and `NextRequest` import after switching to `fetch`-based sign out.
+5. **Multi-export AnalyticsCharts.tsx**: Violated code standard. Split into 3 files, deleted original.
+6. **PostHog events never fired**: `job_search_started` and `job_found` were required but never called. Fixed by extracting `captureJobSearchEvents` to `agent/find.ts` and firing after DB insert.
 
 ---
 
-## Feedback rules (apply every session)
+## Current state
 
-### Always screenshot + compare before reporting UI done
-1. Run playwright screenshot at 1440px
-2. Read screenshot and design PNG side-by-side
-3. Only report done when proportions, font weight, spacing match
-
-### Verify `progress-tracker.md` against actual code before trusting it
-Has been aspirational before. Grep for libraries, glob for directories before starting a feature.
+- **All 17 features complete.** Project is feature-complete.
+- `progress-tracker.md` updated: Feature 17 checked, Current Status = "Project feature-complete. Ready for Vercel deployment."
+- Build: 0 ESLint errors, clean `npm run build`, all 16 routes compile.
+- All work is **uncommitted** (branch `01-complete-feature-6`; large diff including all Features 07–17 changes).
+- `components/dashboard/LogoutButton.tsx` — now redundant (sign out moved to Navbar). Should be deleted.
+- Profile components (`ProfileForm`, `ResumeSection`, `ProfileAttentionBanner`, `ConnectedAccounts`, `TagInput`) still use `style={{ }}` inline with CSS variables — deferred, fix when next touching those files.
 
 ---
 
-## Imprint audit baseline (pending — write to `ui-registry.md`)
+## Next session starts with
 
-2 minor conflicts across 14 components. No raw hex values anywhere.
-
-Conflicts:
-1. **Shadow** — 4 profile cards use `style={{ boxShadow: "var(--shadow-card)" }}`; HowItWorks uses `shadow-card` class → standardise on `shadow-card`
-2. **GitHub button** — `color-mix()` arbitrary values → deferred
-
-| Property | Correct pattern |
-|---|---|
-| Card container | `bg-surface rounded-2xl border border-border p-6 shadow-card` |
-| Row item within card | `rounded-xl border border-border px-4 py-3` |
-| Button — primary (accent) | `px-4 py-2 rounded-md text-sm font-medium text-white hover:opacity-90 transition-opacity` + `style={{ background: "var(--color-accent)" }}` |
-| Button — secondary | `px-4 py-2 rounded-md border border-border bg-surface text-sm font-medium text-text-primary hover:bg-surface-secondary transition-colors` |
-| Button — auth CTA | `h-11 rounded-lg border border-border bg-surface text-sm font-medium hover:bg-surface-secondary transition-colors` |
-| Input / Select | `rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent` |
-| Label | `text-xs font-medium text-text-secondary uppercase tracking-wide` |
-| Tag / chip | `rounded-full px-3 py-1 text-sm font-medium` + `style={{ background: "var(--color-accent-muted)", color: "var(--color-accent)" }}` |
-| Text — primary | `text-text-primary` |
-| Text — secondary | `text-text-secondary` |
-| Text — muted | `text-text-muted` |
-| Card section heading | `text-base font-semibold text-text-primary` |
-| Form subsection heading | `text-sm font-semibold text-text-primary` |
+1. Run `/remember restore`
+2. Deploy to Vercel — set env vars: `NEXT_PUBLIC_INSFORGE_URL`, `NEXT_PUBLIC_INSFORGE_ANON_KEY`, `NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN`, `NEXT_PUBLIC_POSTHOG_HOST`, `OPENAI_API_KEY`, `ADZUNA_APP_ID`, `ADZUNA_APP_KEY`, `BROWSERBASE_API_KEY`, `BROWSERBASE_PROJECT_ID`
+3. Optionally clean up `components/dashboard/LogoutButton.tsx` (unused)
+4. Optionally commit all uncommitted work before deploying
 
 ---
 
 ## Open questions
 
-- Write `ui-registry.md` from imprint baseline above (confirm shadow conflict fix first)
-- Should profile card inline shadows be converted to `shadow-card` class? (minor, do during next profile touch)
+- **Uncommitted work**: Features 07–17 are all uncommitted. Should be committed before or after Vercel deploy — user's call.
+- **`LogoutButton.tsx`**: Redundant since sign out is now in Navbar. Safe to delete.
+- **Inline styles in profile components**: `style={{ }}` with CSS variable values instead of Tailwind classes — deferred to next profile touch.
+- **3 img tag warnings**: `login/page.tsx`, `Footer.tsx`, `Navbar.tsx` use `<img>` instead of Next.js `<Image>`. Not errors, won't block deploy, but could be cleaned up.

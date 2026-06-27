@@ -30,7 +30,7 @@ export function Features() {
               Understand the Company, Deeply
             </h3>
             <p className="mt-2 text-base leading-7 text-text-secondary">
-              Browserbase visits the company's actual website. Stagehand
+              Browserbase visits the company&apos;s actual website. Stagehand
               extracts what matters. GPT-4o turns raw signals into a briefing
               tailored to your specific background.
             </p>

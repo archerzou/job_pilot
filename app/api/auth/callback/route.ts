@@ -40,6 +40,8 @@ export async function GET(request: NextRequest) {
 
   const response = NextResponse.redirect(new URL("/dashboard", request.url));
 
+  // InsForge SDK's setAuthCookies expects its own internal cookie type;
+  // NextResponse.cookies is compatible at runtime but diverges in TS generics.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setAuthCookies(response.cookies as any, {
     accessToken: data.accessToken,

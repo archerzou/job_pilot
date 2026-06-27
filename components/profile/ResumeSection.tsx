@@ -18,10 +18,35 @@ export function ResumeSection({ resumeUrl, onExtracted }: Props) {
   const [currentUrl, setCurrentUrl] = useState<string | null>(resumeUrl ?? null);
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractSuccess, setExtractSuccess] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const [generateSuccess, setGenerateSuccess] = useState(false);
+
+  async function handleGenerate() {
+    setGenerateError(null);
+    setGenerateSuccess(false);
+    setIsGenerating(true);
+    try {
+      const res = await fetch("/api/resume/generate", { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) {
+        setGenerateError(json.error ?? "Generation failed. Please try again.");
+      } else {
+        setGenerateSuccess(true);
+        setCurrentUrl("/api/resume/view");
+      }
+    } catch {
+      setGenerateError("Network error. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
+  }
 
   function handleExtract() {
     setUploadError(null);
     setExtractSuccess(false);
+    setGenerateError(null);
+    setGenerateSuccess(false);
     setIsExtracting(true);
     startExtractTransition(async () => {
       const result = await extractProfile();
@@ -39,6 +64,8 @@ export function ResumeSection({ resumeUrl, onExtracted }: Props) {
     if (!file) return;
     setUploadError(null);
     setExtractSuccess(false);
+    setGenerateError(null);
+    setGenerateSuccess(false);
     const fd = new FormData();
     fd.append("file", file);
     startUploadTransition(async () => {
@@ -93,14 +120,6 @@ export function ResumeSection({ resumeUrl, onExtracted }: Props) {
             <p className="text-xs text-text-muted">PDF · Uploaded</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <a
-              href="/api/resume/view"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3 py-1.5 rounded-md border border-border bg-surface text-xs font-medium text-text-primary hover:bg-surface-secondary transition-colors whitespace-nowrap"
-            >
-              View Resume
-            </a>
             <button
               type="button"
               disabled={isExtracting || isUploading}
@@ -179,12 +198,17 @@ export function ResumeSection({ resumeUrl, onExtracted }: Props) {
           Profile fields filled in. Review and save below.
         </p>
       )}
+      {generateError && (
+        <p className="mt-3 text-sm" style={{ color: "var(--color-error)" }}>{generateError}</p>
+      )}
 
       <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <p className="text-sm text-text-secondary">Need a fresh document based on this Profile below?</p>
         <button
           type="button"
-          className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-white transition-opacity hover:opacity-90"
+          disabled={isGenerating}
+          onClick={handleGenerate}
+          className="w-full sm:w-auto shrink-0 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
           style={{ background: "var(--color-accent)" }}
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -194,9 +218,21 @@ export function ResumeSection({ resumeUrl, onExtracted }: Props) {
               d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"
             />
           </svg>
-          Generate Resume from Profile
+          {isGenerating ? "Generating…" : "Generate Resume from Profile"}
         </button>
       </div>
+      {generateSuccess && (
+        <p className="mt-2 text-sm" style={{ color: "var(--color-success)" }}>
+          Resume generated!{" "}
+          <a
+            href="/api/resume/download"
+            className="underline font-medium"
+            style={{ color: "var(--color-accent)" }}
+          >
+            Download it here.
+          </a>
+        </p>
+      )}
     </div>
   );
 }

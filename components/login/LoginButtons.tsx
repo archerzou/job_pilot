@@ -18,6 +18,7 @@ export function LoginButtons({ error }: Props) {
     <>
       {/* OAuth buttons */}
       <div className="flex flex-col gap-3">
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
         <a
           href="/api/auth/oauth/google"
           className="flex items-center justify-center gap-3 h-11 rounded-lg border border-border bg-surface hover:bg-surface-secondary transition-colors text-sm font-medium text-text-primary"
@@ -27,6 +28,7 @@ export function LoginButtons({ error }: Props) {
           Continue with Google
         </a>
 
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
         <a
           href="/api/auth/oauth/github"
           className="flex items-center justify-center gap-3 h-11 rounded-lg border border-[color-mix(in_srgb,var(--color-overlay)_86%,var(--color-accent)_14%)] bg-[color-mix(in_srgb,var(--color-text-darker)_84%,var(--color-overlay-dark)_16%)] hover:bg-[color-mix(in_srgb,var(--color-text-black)_82%,var(--color-accent)_18%)] transition-colors text-sm font-medium text-[var(--color-accent-foreground)]"

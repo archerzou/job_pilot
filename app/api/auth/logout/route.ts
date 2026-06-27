@@ -1,28 +1,36 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createServerClient, clearAuthCookies } from "@insforge/sdk/ssr";
+import { NextResponse } from "next/server";
+import {
+  DEFAULT_ACCESS_TOKEN_COOKIE,
+  DEFAULT_REFRESH_TOKEN_COOKIE,
+} from "@insforge/sdk/ssr";
+import { getServerClient } from "@/lib/auth";
 import { getPostHogClient } from "@/lib/posthog-server";
 
-export async function POST(request: NextRequest) {
-  const client = createServerClient({
-    baseUrl: process.env.NEXT_PUBLIC_INSFORGE_URL!,
-    anonKey: process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY!,
-    cookies: request.cookies,
-  });
+export async function POST() {
+  let userId: string | undefined;
 
-  const { data: userData } = await client.auth.getCurrentUser();
-  const userId = userData?.user?.id;
-
-  await client.auth.signOut();
-
-  if (userId) {
-    const posthog = getPostHogClient();
-    posthog.capture({ distinctId: userId, event: "logout_completed" });
-    await posthog.shutdown();
+  try {
+    const client = await getServerClient();
+    const { data: userData } = await client.auth.getCurrentUser();
+    userId = userData?.user?.id;
+    await client.auth.signOut();
+  } catch {
+    // Continue to clear cookies even if signOut fails
   }
 
-  // 303 See Other forces the browser to GET "/" instead of re-POSTing (which would 405)
-  const response = NextResponse.redirect(new URL("/", request.url), { status: 303 });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  clearAuthCookies(response.cookies as any);
+  if (userId) {
+    try {
+      const posthog = getPostHogClient();
+      posthog.capture({ distinctId: userId, event: "logout_completed" });
+      await posthog.shutdown();
+    } catch {
+      // Non-fatal
+    }
+  }
+
+  // Return 200 — client handles the /login redirect after fetch resolves
+  const response = new NextResponse(null, { status: 200 });
+  response.cookies.delete(DEFAULT_ACCESS_TOKEN_COOKIE);
+  response.cookies.delete(DEFAULT_REFRESH_TOKEN_COOKIE);
   return response;
 }

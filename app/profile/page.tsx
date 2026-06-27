@@ -50,14 +50,16 @@ export default async function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navbar isAuthenticated={true} />
-      <main className="mx-auto max-w-[800px] px-6 py-8 space-y-5">
-        <ProfilePageClient
-          profile={profile}
-          resumeUrl={dbProfile?.resume_pdf_url}
-          pct={pct}
-          missing={missing}
-        />
+      <Navbar isAuthenticated={true} userEmail={user.email} />
+      <main className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mx-auto max-w-[800px] space-y-5">
+          <ProfilePageClient
+            profile={profile}
+            resumeUrl={dbProfile?.resume_pdf_url}
+            pct={pct}
+            missing={missing}
+          />
+        </div>
       </main>
     </div>
   );
