@@ -1,36 +1,122 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# JobPilot
+
+An AI-powered job search assistant that finds relevant jobs, scores them against your profile, researches companies, and generates tailored resumes.
+
+## Features
+
+- **AI Job Discovery** — Search jobs via Adzuna, then score each result against your profile using GPT-4o in a single batch call
+- **Match Scoring** — Every job gets a 0–100 match score with reasoning and matched/gap skill badges
+- **Company Research Agent** — Browserbase + Stagehand browser agent scrapes the company's homepage and sub-pages, then synthesises a 9-field dossier (tech stack, culture, your edge, interview prep, smart questions)
+- **AI Profile Extraction** — Upload a PDF resume; GPT-4o extracts and pre-fills your full profile
+- **Resume Generation** — Generate a tailored PDF resume from your profile using GPT-4o content + `@react-pdf/renderer`
+- **Analytics Dashboard** — Real DB data charts: jobs found over time, company research activity, match score distribution
+- **Auth** — Google and GitHub OAuth via InsForge SSR auth with PKCE
+
+## Screenshots
+
+### Dashboard
+![Dashboard](public/screenshots/dashboard.png)
+
+### Find Jobs
+![Find Jobs](public/screenshots/find-jobs.png)
+
+### Profile
+![Profile](public/screenshots/profile.png)
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript |
+| Styling | Tailwind CSS 3.4 |
+| Database / Auth / Storage | InsForge (`@insforge/sdk`) |
+| AI | OpenAI GPT-4o via `openai` SDK |
+| Job Data | Adzuna API |
+| Browser Automation | Browserbase + Stagehand v3 |
+| PDF Generation | `@react-pdf/renderer` |
+| PDF Parsing | `pdf-parse` v1 |
+| Analytics | PostHog |
+| Charts | Recharts |
+
+## Project Structure
+
+```
+app/
+  dashboard/          # Dashboard with stats, activity feed, charts
+  find-jobs/          # Job search + results table; [id]/ job details
+  profile/            # Profile form, resume upload/generate/extract
+  api/
+    agent/find/       # Job discovery + batch scoring agent
+    agent/research/   # Company research agent
+    auth/             # OAuth callback, logout
+    jobs/             # DB-backed job list with filters + pagination
+    resume/generate/  # GPT-4o resume generation + PDF render
+    resume/download/  # Signed PDF download
+
+agent/
+  find.ts             # batchScoreJobs, captureJobSearchEvents
+  research.ts         # runCompanyResearch (Browserbase + GPT-4o)
+
+components/
+  dashboard/          # StatsBar, RecentActivity, chart components
+  find-jobs/          # SearchControls, JobFilters, JobsTable, JobsPagination
+  job-details/        # JobActions, JobInfo, MatchScore, JobDescription, CompanyResearch
+  layout/             # Navbar (desktop avatar panel + mobile hamburger)
+  profile/            # ProfileForm, ResumeSection, ProfileAttentionBanner
+  homepage/           # Hero, Features, HowItWorks, CTASection, Footer
+
+lib/
+  auth.ts             # getServerClient, getUser, requireUser
+  adzuna.ts           # searchJobs HTTP helper
+  posthog-server.ts   # Typed server-side PostHog client
+  utils.ts            # Match score colours, formatDate, formatSalary
+
+proxy.ts              # Next.js 16 route protection (checks access token cookie)
+```
+
+## Environment Variables
+
+```bash
+# InsForge
+NEXT_PUBLIC_INSFORGE_URL=
+NEXT_PUBLIC_INSFORGE_ANON_KEY=
+
+# PostHog
+NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN=
+NEXT_PUBLIC_POSTHOG_HOST=
+
+# OpenAI
+OPENAI_API_KEY=
+
+# Adzuna
+ADZUNA_APP_ID=
+ADZUNA_APP_KEY=
+
+# Browserbase
+BROWSERBASE_API_KEY=
+BROWSERBASE_PROJECT_ID=
+```
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
+cp .env.example .env.local   # fill in the variables above
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Database Schema
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Four tables managed via InsForge migrations with full RLS:
 
-## Learn More
+| Table | Purpose |
+|---|---|
+| `profiles` | User profile, work experience, education, job preferences |
+| `jobs` | Discovered jobs with match scores, descriptions, company research dossier |
+| `agent_runs` | Log of each find-jobs or research run |
+| `agent_logs` | Per-step agent log entries |
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+A `resumes` private storage bucket holds uploaded and generated PDF resumes scoped per user.

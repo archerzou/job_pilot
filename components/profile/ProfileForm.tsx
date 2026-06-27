@@ -173,7 +173,7 @@ export const ProfileForm = forwardRef<ProfileFormHandle, Props>(function Profile
   }
 
   function addWorkExp() {
-    setWorkExps((prev) => [...prev, { ...EMPTY_WORK_EXP }]);
+    setWorkExps((prev) => [{ ...EMPTY_WORK_EXP }, ...prev]);
   }
 
   return (
@@ -328,7 +328,7 @@ export const ProfileForm = forwardRef<ProfileFormHandle, Props>(function Profile
             className="text-sm font-medium transition-colors"
             style={{ color: "var(--color-accent)" }}
           >
-            + Add role
+            + Add experience
           </button>
         </div>
         <div className="space-y-4">

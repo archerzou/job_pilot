@@ -222,18 +222,34 @@ const insforge = await createInsforgeServer();
 
 All PostHog events must use these exact event names. Never invent new event names without adding them here first.
 
+**Core product events (server-side, posthog-node):**
+
 | Event                | When                                       | Key Properties             |
 | -------------------- | ------------------------------------------ | -------------------------- |
-| `job_search_started` | Find Jobs button clicked                   | userId, jobTitle, location |
+| `job_search_started` | Job search agent run begins                | userId, jobTitle, location |
 | `job_found`          | Each job discovered and saved              | userId, source, matchScore |
 | `profile_completed`  | User saves complete profile for first time | userId                     |
 | `company_researched` | Company research dossier generated         | userId, jobId, company     |
 
-These four events are the only events in this project. Do not add more without updating this list first.
+**Auth and session events (server-side, posthog-node):**
 
-`job_found` powers the Jobs Found Over Time and Match Score Distribution dashboard charts.
-`company_researched` powers the Company Research Activity dashboard chart.
-Always fire these with correct properties.
+| Event              | When                         | Key Properties        |
+| ------------------ | ---------------------------- | --------------------- |
+| `login_completed`  | OAuth callback succeeds      | userId                |
+| `login_failed`     | OAuth callback fails         | reason                |
+| `logout_completed` | User signs out               | userId                |
+
+**UI interaction events (client-side, posthog-js):**
+
+| Event                  | When                              | Key Properties          |
+| ---------------------- | --------------------------------- | ----------------------- |
+| `login_initiated`      | User clicks OAuth sign-in button  | provider                |
+| `login_error_displayed`| Login error shown to user         | error_code              |
+| `nav_link_clicked`     | User clicks a nav link            | label, href             |
+| `cta_clicked`          | User clicks a CTA button          | label, location         |
+| `dashboard_viewed`     | User opens the dashboard          | userId                  |
+
+Do not add more events without updating this list first.
 
 ---
 

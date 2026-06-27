@@ -92,6 +92,16 @@ export interface Job {
   found_at: string;
 }
 
+export interface GeneratedContent {
+  summary: string;
+  categorizedSkills: Array<{ category: string; items: string[] }>;
+  enhancedExperiences: Array<{
+    company: string;
+    title: string;
+    bullets: string[];
+  }>;
+}
+
 export interface AgentLog {
   id: string;
   run_id: string | null;

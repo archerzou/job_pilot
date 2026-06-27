@@ -30,7 +30,7 @@ export function HowItWorks() {
               Know the Company Before You Apply
             </h3>
             <p className="mt-2 text-base leading-7 text-text-secondary">
-              One click launches the research agent. It browses the company's
+              One click launches the research agent. It browses the company&apos;s
               site, extracts their tech stack and culture, and builds a dossier
               tailored to your background.
             </p>
@@ -41,7 +41,7 @@ export function HowItWorks() {
               Keep Track of Every Application
             </h3>
             <p className="mt-2 text-base leading-7 text-text-secondary">
-              Every job you've discovered, scored, and researched — all in one
+              Every job you&apos;ve discovered, scored, and researched — all in one
               dashboard with activity history and match analytics.
             </p>
           </div>
